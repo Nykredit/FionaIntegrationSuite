@@ -1,0 +1,63 @@
+name: Azure Function App Release
+on:
+  push:
+    branches:
+        - main
+  release:
+    types: [released]
+
+env:
+    ${{ insert }}: ${{ vars }}
+    ${{ insert }}: ${{ secrets }}
+
+jobs:
+    funcapp-dev-deploy:
+        name: Release to DEV
+        if: github.ref == 'refs/heads/main'  # Only run for main and release branches
+        uses: ./.github/workflows/Azure-Func-Deploy.yml
+        with:
+            environment: 'dev'
+        secrets: inherit
+    
+    funcapp-test-deploy:
+        name: Release to TEST
+        # needs: preflight
+        # Only run if the release was created from the main branch
+        if: github.event.release.target_commitish == 'main'
+        uses: ./.github/workflows/Azure-Func-Deploy.yml
+        with:
+          environment: 'test'       
+        secrets: inherit
+    
+    itsm-ticket-creation:    
+        needs: [funcapp-test-deploy]
+        uses: Nykredit/wte-reusable-workflows/.github/workflows/reusable-itsm-start.yml@workdir
+        with:
+            environment: 'prod'
+            cherwell-title: 'Wealth Technology Middle Office Products - Market Making Checks prod deployment'
+            cherwell-description: 'deploy release-version: ${{ github.run_number }} to production'
+            cherwell-configuration-item-id: 'APPLNYKA10471'
+            cherwell-request-initials: 'PIRA'
+            cherwell-assigment-group: 'WT-MiddleOfficeProducts'
+        secrets: inherit
+
+    funcapp-prod-deploy:
+        name: Release to PROD
+        needs: [itsm-ticket-creation, funcapp-test-deploy]
+        # needs: preflight
+        # Only run if the release was created from the main branch
+        if: github.event.release.target_commitish == 'main'
+        uses: ./.github/workflows/Azure-Func-Deploy.yml
+        with:
+          environment: 'prod'       
+        secrets: inherit
+    
+    itsm-ticket-close:
+        needs: [itsm-ticket-creation, funcapp-prod-deploy]
+        uses: Nykredit/wte-reusable-workflows/.github/workflows/reusable-itsm-close.yml@workdir
+        with:
+            location_header: ${{ needs.itsm-ticket-creation.outputs.location-header }}
+            date: ${{ needs.itsm-ticket-creation.outputs.get-date }}
+            bearer_token: ${{ needs.itsm-ticket-creation.outputs.get-bearer-token }}
+            status-prod: ${{ needs.webapp-prd-deploy.outputs.job-status }}
+        secrets: inherit

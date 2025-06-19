@@ -1,0 +1,172 @@
+name: Azure Infra Terraform
+
+on:
+    workflow_dispatch:
+
+env:
+    ${{ insert }}: ${{ vars }}
+    ${{ insert }}: ${{ secrets }}
+
+jobs:
+    dev:
+        name: Terraform Infra - DEV
+        runs-on:
+          group: NykRunners
+          labels: Linux
+        environment:
+          name: dev
+        outputs:
+          func_name: ${{ steps.output.outputs.FUNC_NAME }}
+        steps:
+
+            - name: Log in with Azure
+              uses: azure/login@v2
+              with:
+                creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+            
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                terraform_wrapper: false
+
+            - name: Initialize Terraform
+              run: |
+                cd tf
+                dir
+                export HOME=${{ runner.home }}
+                git config --global url."https://oauth2:${{ secrets.WTE_READ_INFRA }}@github.com".insteadOf "https://github.com"
+                terraform init -backend-config="backends/dev-backend.tfvars"
+
+            - name: Apply Terraform
+              run: |
+                cd tf
+                printenv
+                terraform apply -var-file="env-variables/dev-vars.tfvars" -auto-approve
+            
+            - name: Get Terraform output
+              id: output
+              run: |
+                cd tf
+                func_name=$(terraform output -raw func_name)
+                if [[ $func_name == *"No outputs found"* ]]; then
+                  func_name="not_set"
+                fi
+                echo "FUNC_NAME=$func_name" >> $GITHUB_OUTPUT
+
+                
+            - name: Use Terraform output
+              run: |
+                echo "The function name is ${{ steps.output.outputs.FUNC_NAME }}"
+    
+    test:
+      name: Terraform Infra - TEST
+      needs: dev
+      environment:
+        name: test
+      runs-on:
+        group: NykRunners
+        labels: Linux
+
+
+      steps:
+
+        - name: Log in with Azure
+          uses: azure/login@v2
+          with:
+            creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+      
+        - name: Checkout this repository
+          uses: actions/checkout@v4
+        
+        - name: Set up Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_wrapper: false  
+
+
+        - name: Initialize Terraform
+          run: |
+                export HOME=${{ runner.home }}
+                ls
+                cd tf
+                git config --global url."https://oauth2:${{ secrets.WTE_READ_INFRA }}@github.com".insteadOf "https://github.com"
+                terraform init -backend-config="backends/test-backend.tfvars"
+            
+
+        - name: Apply Terraform
+          working-directory: tf
+          run: |
+            terraform apply -var-file="env-variables/test-vars.tfvars" -auto-approve
+
+            
+    itsm-ticket-creation: 
+        name: Cherwell Change Management - PROD
+        needs: [test]
+        uses: Nykredit/wte-reusable-workflows/.github/workflows/reusable-itsm-start.yml@workdir
+        with:
+          environment: 'prod'
+          cherwell-title: 'Wealth Technology Middle Office Products - Market Making Checks prod deployment'
+          cherwell-description: 'deploy release-version: ${{ github.run_number }} to production'
+          cherwell-configuration-item-id: 'APPLNYKA10471'
+          cherwell-request-initials: 'PIRA'
+          cherwell-assigment-group: 'WT-MiddleOfficeProducts'
+
+
+        secrets: inherit
+
+    prod:
+      name: Terraform Infra - PROD
+      needs: [test, itsm-ticket-creation]
+      outputs:
+        job-status: ${{ job.status }}
+      environment:
+        name: prod
+      runs-on:
+        group: NykRunners
+        labels: Linux
+
+
+      steps:
+
+        - name: Log in with Azure
+          uses: azure/login@v2
+          with:
+            creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+      
+        - name: Checkout this repository
+          uses: actions/checkout@v4
+        
+        - name: Set up Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_wrapper: false  
+
+
+        - name: Initialize Terraform
+          run: |
+                export HOME=${{ runner.home }}
+                ls
+                cd tf
+                git config --global url."https://oauth2:${{ secrets.WTE_READ_INFRA }}@github.com".insteadOf "https://github.com"
+                terraform init -backend-config="backends/prod-backend.tfvars"
+            
+
+        - name: Apply Terraform
+          working-directory: tf
+          run: |
+            terraform apply -var-file="env-variables/prod-vars.tfvars" -auto-approve
+
+    itsm-ticket-close:
+      name: Cherwell Change Management - Close ticket
+      needs: [itsm-ticket-creation,  prod]
+      uses: Nykredit/wte-reusable-workflows/.github/workflows/reusable-itsm-close.yml@workdir
+      with:
+        location_header: ${{ needs.itsm-ticket-creation.outputs.location-header }}
+        date: ${{ needs.itsm-ticket-creation.outputs.get-date }}
+        bearer_token: ${{ needs.itsm-ticket-creation.outputs.get-bearer-token }}
+        status-prod: ${{ needs.prod.outputs.job-status }}
+
+      secrets: inherit
