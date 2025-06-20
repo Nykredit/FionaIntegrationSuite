@@ -1,0 +1,9 @@
+{
+  "name": "my-custom-template",
+  "generator": {
+    "renderer": "react"
+  },
+  "dependencies": {
+    "@asyncapi/generator-react-sdk": "^0.2.25"
+  }
+}

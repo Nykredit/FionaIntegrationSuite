@@ -1,0 +1,17 @@
+{
+  "name": "datatransformationhub.events",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "generate-models": "docker run --rm -it --user=root -v %cd%\\spec\\v1.yaml:/app/asyncapi.yml -v %cd%\\template:/app/template -v %cd%\\Models:/app/output docker.nykreditnet.net/asyncapi/cli generate fromTemplate -o /app/output /app/asyncapi.yml /app/template --force-write --debug",
+    "generate-docs": "docker run --rm -it --user=root -v %cd%\\spec\\v1.yaml:/app/asyncapi.yml -v %cd%\\docs:/app/output -v %cd%\\node_modules:/app/node_modules docker.nykreditnet.net/asyncapi/cli generate fromTemplate -o /app/output /app/asyncapi.yml /app/node_modules/@asyncapi/markdown-template --force-write --debug"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@asyncapi/cli": "github:asyncapi/cli",
+    "@asyncapi/markdown-template": "^1.2.1"
+  }
+}
+

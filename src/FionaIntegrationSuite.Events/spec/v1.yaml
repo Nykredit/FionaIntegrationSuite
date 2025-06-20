@@ -1,0 +1,170 @@
+asyncapi: 2.6.0
+info:
+  title: Streetlights Kafka API
+  version: 1.0.0
+  description: |-
+    The Smartylighting Streetlights API allows you to remotely manage the city
+    lights.
+    ### Check out its awesome features:
+
+    * Turn a specific streetlight on/off 🌃  
+    * Dim a specific streetlight 😎
+    * Receive real-time information about environmental lighting conditions 📈
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+defaultContentType: application/json
+
+servers:
+  scram-connections:
+    url: test.mykafkacluster.org:18092
+    protocol: kafka-secure
+    description: Test broker secured with scramSha256
+    security:
+      - saslScram: []
+    tags:
+      - name: "env:test-scram"
+        description: "This environment is meant for running internal tests through scramSha256"
+      - name: "kind:remote"
+        description: "This server is a remote server. Not exposed by the application"
+      - name: "visibility:private"
+        description: "This resource is private and only available to certain users"  
+  mtls-connections:
+    url: test.mykafkacluster.org:28092
+    protocol: kafka-secure
+    description: Test broker secured with X509
+    security:
+      - certs: []
+    tags:
+      - name: "env:test-mtls"
+        description: "This environment is meant for running internal tests through mtls"
+      - name: "kind:remote"
+        description: "This server is a remote server. Not exposed by the application"
+      - name: "visibility:private"
+        description: "This resource is private and only available to certain users"
+
+channels:
+  fiona.private.createreport:
+    description: blah blah blah
+    publish:
+      summary: blah blah blah
+      operationId: createReport
+      tags:
+        - name: private
+      message:
+        $ref: '#/components/messages/reportRequested'
+
+  fiona.private.publishreport:
+    description: blah blah blah
+    publish:
+      summary: blah blah blah
+      operationId: publishReport
+      tags:
+        - name: private
+      message:
+        $ref: '#/components/messages/publishReport'
+
+components:
+  messages:
+    reportRequested:
+      name: reportRequested
+      title: Report requested
+      summary: >-
+        blah blah blah
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/createReportPayload'
+    
+    publishReport:
+      name: publishReport
+      title: Report created
+      summary: >-
+        blah blah blah
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/reportCreatedPayload'
+
+  schemas:
+    createReportPayload:
+      type: object
+      description: Represents the payload for creating a report.
+      properties:
+        ultimoDate:
+          type: integer
+          description: The ultimo date for the report.
+        sequenceNo:
+          type: integer
+          description: The sequence number of the report.
+        reportTypeId:
+          type: integer
+          description: The type ID of the report.
+          nullable: true
+        referenceDate:
+          type: integer
+          description: Reference date related to the report.
+          nullable: true
+        result:
+          type: string
+          description: The result of the report processing.
+          nullable: true
+        allDepartmentsSelected:
+          type: boolean
+          description: Indicates whether all departments were selected.
+        sendDate:
+          type: string
+          format: date-time
+          description: The date and time the report was sent.
+        destinationId:
+          type: integer
+          description: The unique identifier for the destination of the report.
+        reportStatusId:
+          type: integer
+          description: The status ID of the report.
+          nullable: true
+        user:
+          type: string
+          description: The user associated with the report creation.
+          nullable: true
+        senderId:
+          type: integer
+          description: The unique identifier of the sender.
+      required:
+        - ultimoDate
+        - sequenceNo
+        - allDepartmentsSelected
+        - sendDate
+        - destinationId
+        - senderId
+    
+    reportCreatedPayload:
+      type: object
+      description: Represents the payload for processing a report.
+      properties:
+        reportTypeId:
+          type: integer
+          description: The type ID of the report.
+        xml:
+          type: string
+          description: The XML content of the report.
+        errors:
+          type: array
+          description: A list of errors encountered during report processing.
+          items:
+            type: string
+            description: An error message.
+      required:
+        - reportTypeId
+        - xml
+        - errors
+
+  securitySchemes:
+    saslScram:
+      type: scramSha256
+      description: Provide your username and password for SASL/SCRAM authentication
+    certs:
+      type: X509
+      description: Download the certificate files from service provider
+
+  parameters:
+    streetlightId:
+      description: The ID of the streetlight.
