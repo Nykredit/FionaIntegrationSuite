@@ -1,12 +1,12 @@
-APPLICATION = "fiona-integration-suite"
+APPLICATION = "fiona"
 VALUESTREAM = "wtmop"
 ENVIRONMENT = "dev"
 
-VNET_RG = "nyk-dev-gwc-shared-rg"
-VNET_NAME = "nyk-dev-gwc-lzmop-vnet-02"
+VNET_RG = "nyk-dev-sdc-shared-rg" 
+VNET_NAME = "nyk-dev-sdc-lzmop-vnet-01"
 
-SNET_INBOUND_NAME  = "nyk-gwc-01-snet"
-SNET_OUTBOUND_NAME = "nyk-gwc-02-snet"
+SNET_INBOUND_NAME  = "nyk-sdc-01-snet"
+SNET_OUTBOUND_NAME = "nyk-sdc-02-snet"
 
 RESOURCE_TAGS =  {
     creators    = "vnrs@nykredit.dk"
@@ -21,7 +21,7 @@ RESOURCE_TAGS =  {
     "ES-Owner"        = "MIGU@nykredit.dk"
     "ES-ServiceClass" = "NotAvailable"
     "Environment"     = "Dev"
-    "Main Contact"    = "vnrs@nykredit.dk"
+    "Main Contact"    = "VNRS@nykredit.dk"
     "Organization"    = "Nykredit Realkredit A/S"
     "Owner"           = "MIGU@nykredit.dk"
     "Team Ownership"  = "Middle Office Products"

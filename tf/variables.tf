@@ -28,9 +28,10 @@ variable "SNET_INBOUND_NAME" {
 variable "SNET_OUTBOUND_NAME" {
 }
 
-variable "SNET_OUTBOUND_WEBAPP_NAME" {
+# no web app yet
+# variable "SNET_OUTBOUND_WEBAPP_NAME" {
     
-}
+# }
 
 variable "RESOURCE_TAGS" {
   type = map(string)
