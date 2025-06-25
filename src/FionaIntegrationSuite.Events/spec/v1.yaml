@@ -44,7 +44,7 @@ servers:
         description: "This resource is private and only available to certain users"
 
 channels:
-  fiona.private.createreport:
+  fiona.private.report-creation-events:
     description: blah blah blah
     publish:
       summary: blah blah blah
@@ -54,7 +54,7 @@ channels:
       message:
         $ref: '#/components/messages/reportRequested'
 
-  fiona.private.publishreport:
+  fiona.private.submission-events:
     description: blah blah blah
     publish:
       summary: blah blah blah
